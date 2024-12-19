@@ -7,10 +7,12 @@ CREATE TABLE IF NOT EXISTS feeds (
   id serial PRIMARY KEY,
   name varchar NOT NULL UNIQUE,
   url varchar NOT NULL UNIQUE,
-  category_id int NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
-  created_date timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+  category_id int NOT NULL REFERENCES categories(id),
+  created_date timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS cache (
-  json jsonb
+  name varchar NOT NULL UNIQUE,
+  created_date timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  xml_string text NOT NULL
 );
