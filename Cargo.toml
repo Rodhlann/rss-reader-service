@@ -1,0 +1,18 @@
+[package]
+name = "rss-reader-service"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = "0.7.9"
+chrono = "0.4.39"
+reqwest = { version = "0.12", features = ["json"] }
+rss = "2.0.11"
+serde = "1.0.216"
+serde_json = "1.0.133"
+shuttle-axum = "0.49.0"
+shuttle-runtime = "0.49.0"
+shuttle-shared-db = { version = "0.49.0", features = ["postgres", "sqlx"] }
+sqlx = { version = "0.8", features = [ "runtime-tokio", "tls-native-tls" ] }
+tokio = { version = "1.42.0", features = ["full"] }
+tower = "0.5.2"
