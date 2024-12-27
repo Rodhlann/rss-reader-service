@@ -3,7 +3,9 @@ use shuttle_runtime::SecretStore;
 use sqlx::PgPool;
 
 mod service;
-use service::get_feeds;
+use service::{ get_feeds, get_raw_feeds };
+
+mod db;
 
 mod error;
 
@@ -24,11 +26,11 @@ pub async fn rss_reader_service (
             get(get_feeds)
         );
 
-    // let protected_routes = Router::new()
-    //     .route("/admin",
-    //         get(get_raw_feeds)
+    let protected_routes = Router::new()
+        .route("/admin",
+            get(get_raw_feeds)
     //         .post(create_feed)
-    //     )
+        );
     //     .route("/admin/batch",
     //         post(batch_create_feeds)
     //     )
@@ -39,7 +41,7 @@ pub async fn rss_reader_service (
 
     let routes = Router::new()
         .merge(unprotected_routes)
-        // .merge(protected_routes)
+        .merge(protected_routes)
         .with_state(state);
 
     Ok(routes.into())
