@@ -14,5 +14,5 @@ CREATE TABLE IF NOT EXISTS feeds (
 CREATE TABLE IF NOT EXISTS cache (
   name varchar NOT NULL UNIQUE,
   created_date timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  xml_string text NOT NULL
+  json_string text NOT NULL
 );

@@ -37,7 +37,7 @@ impl FeedDataSource {
         .await
         {
             Ok(res) => res,
-            Err(e) => anyhow::bail!("Failed to get raw feeds from db"),
+            Err(e) => anyhow::bail!("Failed to get raw feeds from db: {}", e),
         };
         Ok(res)
     }
