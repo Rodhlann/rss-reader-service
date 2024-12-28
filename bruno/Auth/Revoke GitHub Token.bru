@@ -1,0 +1,26 @@
+meta {
+  name: Revoke GitHub Token
+  type: http
+  seq: 4
+}
+
+delete {
+  url: https://api.github.com/applications/{{process.env.GITHUB_CLIENT_ID}}/token
+  body: json
+  auth: basic
+}
+
+headers {
+  Accept: application/vnd.github+json
+}
+
+auth:basic {
+  username: {{process.env.GITHUB_CLIENT_ID}}
+  password: {{process.env.GITHUB_CLIENT_SECRET}}
+}
+
+body:json {
+  {
+    "access_token": "{{GITHUB_ACCESS_TOKEN}}"
+  }
+}

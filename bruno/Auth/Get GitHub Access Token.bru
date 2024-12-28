@@ -1,0 +1,31 @@
+meta {
+  name: Get GitHub Access Token
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://github.com/login/oauth/authorize
+  body: none
+  auth: oauth2
+}
+
+headers {
+  Accept: application/json
+}
+
+auth:oauth2 {
+  grant_type: authorization_code
+  callback_url: http://localhost:3000/api/auth/callback/github
+  authorization_url: https://github.com/login/oauth/authorize
+  access_token_url: https://github.com/login/oauth/access_token
+  client_id: {{process.env.GITHUB_CLIENT_ID}}
+  client_secret: {{process.env.GITHUB_CLIENT_SECRET}}
+  scope: 
+  state: 
+  pkce: false
+}
+
+script:post-response {
+  bru.setVar("GITHUB_ACCESS_TOKEN", res.getBody().access_token)
+}

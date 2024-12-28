@@ -2,7 +2,7 @@ use axum::{extract::State, response::IntoResponse, Json};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::{ db::{CacheDataSource, CachedFeedInput, FeedDataSource}, error::ServiceError, AppState };
+use crate::{ db::{CacheDataSource, CachedFeedInput, FeedDataSource, RawFeedInput}, error::ServiceError, AppState };
 
 #[derive(Deserialize, Serialize, Debug)]
 struct Entry {
@@ -27,13 +27,14 @@ pub async fn get_feeds(
     let mut feeds: Vec<Feed> = Vec::new();
 
     for raw_feed in raw_feeds {
-        let cache_data_source = CacheDataSource::new(state.pool.clone());
-        if let Some(cached_feed) = cache_data_source.get_cached_feed(&raw_feed.name).await? {
-            feeds.push(Feed { name: cached_feed.name, category: "cached".to_string(), entries: vec!(Entry { title: "cached".to_string(), url: "cached".to_string(), created_date: "cached".to_string() }) });
+        if let Some(cached_feed) = CacheDataSource::new(state.pool.clone()).get_cached_feed(&raw_feed.name).await? {
+            // feeds.push(cached_feed.json_string);
         } else {
+            // TODO fetch live feed data
+            CacheDataSource::new(state.pool.clone())
+                .cache_feed(CachedFeedInput { name: raw_feed.name, json_string: "json".to_string() })
+                .await?;
             feeds.push(Feed { name: "live".to_string(), category: "live".to_string(), entries: vec!(Entry { title: "live".to_string(), url: "live".to_string(), created_date: "live".to_string() }) });
-            let cache_data_source = CacheDataSource::new(state.pool.clone());
-            cache_data_source.cache_feed(CachedFeedInput { name: raw_feed.name, json_string: "json".to_string() }).await?;
         };
     }
 
@@ -43,7 +44,19 @@ pub async fn get_feeds(
 pub async fn get_raw_feeds(
     State(state): State<AppState>
 ) -> Result<impl IntoResponse, ServiceError> {
-    let feed_data_source = FeedDataSource::new(state.pool.clone());
-    let raw_feeds = feed_data_source.get_raw_feeds().await?;
+    let raw_feeds = FeedDataSource::new(state.pool.clone())
+        .get_raw_feeds()
+        .await?;
+
     Ok(Json(json!(raw_feeds)))
+}
+
+pub async fn create_raw_feed(
+    State(state): State<AppState>,
+    Json(body): Json<RawFeedInput>
+) -> Result<impl IntoResponse, ServiceError> {
+   let raw_feed = FeedDataSource::new(state.pool.clone())
+        .create_raw_feed(body)
+        .await?;
+    Ok(Json(raw_feed))
 }

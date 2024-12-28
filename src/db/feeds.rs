@@ -1,8 +1,9 @@
+use anyhow::Context;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgPool};
 
 #[derive(Deserialize, Serialize, Debug)]
-struct RawFeedInput {
+pub struct RawFeedInput {
     name: String,
     url: String,
     category: String,
@@ -26,19 +27,71 @@ impl FeedDataSource {
     }
 
     pub async fn get_raw_feeds(&self) -> Result<Vec<RawFeed>, anyhow::Error> {
-        let res = match sqlx::query_as::<_, RawFeed>(
-            "SELECT feeds.id, feeds.name, feeds.url, categories.name AS category
-            FROM feeds
+        let res = sqlx::query_as::<_, RawFeed>(
+            "SELECT raw_feeds.id, raw_feeds.name, raw_feeds.url, categories.name AS category
+            FROM raw_feeds
             INNER JOIN categories
             ON
-            feeds.category_id = categories.id;",
+            raw_feeds.category_id = categories.id;",
         )
         .fetch_all(&self.pool)
         .await
-        {
-            Ok(res) => res,
-            Err(e) => anyhow::bail!("Failed to get raw feeds from db: {}", e),
+        .inspect_err(|e| { eprintln!("Database error: {:?}", e); })
+        .context("Failed to get raw feeds from db")?;
+
+        Ok(res)
+    }
+
+    pub async fn create_raw_feed(&self, input: RawFeedInput) -> Result<RawFeed, anyhow::Error> {
+        println!("Creating new feed: {}", input.name);
+
+        let new_category_id = sqlx::query_scalar(
+            "INSERT INTO categories (name)
+            VALUES ($1)
+            ON CONFLICT (name) DO NOTHING
+            RETURNING id"
+        )
+        .bind(&input.category)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        let category_id: i32 = if let Some(id) = new_category_id {
+            id
+        } else {
+            sqlx::query_scalar("SELECT id FROM categories WHERE name = $1")
+                .bind(&input.category)
+                .fetch_one(&self.pool)
+                .await
+                .inspect_err(|e| { eprintln!("Database error: {:?}", e); })
+                .context("Failed to fetch existing category ID")?
         };
+
+        sqlx::query(
+            "INSERT INTO raw_feeds (name, url, category_id)
+                VALUES ($1, $2, $3)"
+        )
+        .bind(&input.name)
+        .bind(&input.url)
+        .bind(category_id)
+        .execute(&self.pool)
+        .await
+        .inspect_err(|e| { eprintln!("Database error: {:?}", e); })
+        .context("Failed to create new feed")?;
+
+        let res = sqlx::query_as::<_, RawFeed>(
+            "SELECT raw_feeds.id, raw_feeds.name, raw_feeds.url, categories.name AS category
+            FROM raw_feeds
+            INNER JOIN categories
+            ON
+            raw_feeds.category_id = categories.id
+            WHERE raw_feeds.name = $1;"
+        )
+        .bind(&input.name)
+        .fetch_one(&self.pool)
+        .await
+        .inspect_err(|e| { eprintln!("Database error: {:?}", e); })
+        .context(format!("Error while getting feed: {}", input.name))?;
+
         Ok(res)
     }
 }

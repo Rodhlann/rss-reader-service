@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "rss-reader-service",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

@@ -1,0 +1,16 @@
+meta {
+  name: Get GitHub User
+  type: http
+  seq: 2
+}
+
+get {
+  url: https://api.github.com/user
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{GITHUB_ACCESS_TOKEN}}
+  User-Agent: rss-reader-service
+}

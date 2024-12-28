@@ -1,3 +1,4 @@
+use anyhow::Context;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgPool};
@@ -25,31 +26,26 @@ impl CacheDataSource {
     }
 
     pub async fn get_cached_feed(self, feed_name: &str) -> Result<Option<CachedFeed>, anyhow::Error> {
-        let res = match sqlx::query_as::<_, CachedFeed>(
+        let res = sqlx::query_as::<_, CachedFeed>(
             "SELECT * FROM cache where name = $1;"
         ).bind(feed_name)
         .fetch_optional(&self.pool)
-        .await {
-            Ok(res) => res,
-            Err(e) => anyhow::bail!("Failed to get cached feed: {}, {}", feed_name, e)
-        };
+        .await
+        .context(format!("Failed to get cached feed: {}", feed_name))?;
 
         Ok(res)
     }
 
     pub async fn cache_feed(self, input: CachedFeedInput) -> Result<(), anyhow::Error> {
-        if let Err(e) = sqlx::query(
+        sqlx::query(
             "INSERT INTO cache (name, json_string) VALUES ($1, $2);"
         )
         .bind(&input.name)
         .bind(&input.json_string)
         .execute(&self.pool)
         .await
-        {
-            anyhow::bail!("Failed to cache {}: {}", input.name, e)
-        }
+        .context(format!("Failed to cache {}", input.name))?;
 
         Ok(())
-
     }
 }

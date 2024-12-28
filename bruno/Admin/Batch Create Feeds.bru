@@ -1,0 +1,43 @@
+meta {
+  name: Batch Create Feeds
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{service-url}}/admin/batch
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{GITHUB_ACCESS_TOKEN}}
+}
+
+body:json {
+  [
+    {
+      "id": 1,
+      "name": "Node.js Blog",
+      "url": "https://nodejs.org/en/feed/blog.xml",
+      "category": "Code"
+    },
+    {
+      "id": 3,
+      "name": "This Week in Rust",
+      "url": "https://this-week-in-rust.org/rss.xml",
+      "category": "Code"
+    },
+    {
+      "id": 5,
+      "name": "Global Hunger Index",
+      "url": "https://www.globalhungerindex.org/atom.xml",
+      "category": "News"
+    },
+    {
+      "name": "The Tidepooler",
+      "url": "https://thetidepooler.com/feed",
+      "category": "Ocean"
+    }
+  ]
+}

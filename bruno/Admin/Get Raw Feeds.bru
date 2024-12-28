@@ -1,0 +1,15 @@
+meta {
+  name: Get Raw Feeds
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{service-url}}/admin
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{GITHUB_ACCESS_TOKEN}}
+}

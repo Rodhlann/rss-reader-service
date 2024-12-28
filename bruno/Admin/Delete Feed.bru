@@ -1,0 +1,15 @@
+meta {
+  name: Delete Feed
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{service-url}}/admin/2
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{GITHUB_ACCESS_TOKEN}}
+}
