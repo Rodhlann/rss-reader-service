@@ -12,7 +12,7 @@ pub struct CachedFeedInput {
 #[derive(Deserialize, Serialize, Debug, FromRow)]
 pub struct CachedFeed {
     pub name: String,
-    pub json_string: String,
+    pub url: String,
     pub created_date: DateTime<Utc>,
 }
 
@@ -31,6 +31,7 @@ impl CacheDataSource {
         ).bind(feed_name)
         .fetch_optional(&self.pool)
         .await
+        .inspect_err(|e| { eprintln!("Database error: {:?}", e); })
         .context(format!("Failed to get cached feed: {}", feed_name))?;
 
         Ok(res)
@@ -44,6 +45,7 @@ impl CacheDataSource {
         .bind(&input.json_string)
         .execute(&self.pool)
         .await
+        .inspect_err(|e| { eprintln!("Database error: {:?}", e); })
         .context(format!("Failed to cache {}", input.name))?;
 
         Ok(())
