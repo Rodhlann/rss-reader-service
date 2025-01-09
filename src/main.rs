@@ -5,7 +5,7 @@ use sqlx::PgPool;
 mod service;
 use service::{ create_raw_feed, get_feeds, get_raw_feeds };
 
-mod db;
+mod data;
 
 mod error;
 

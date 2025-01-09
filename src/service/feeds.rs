@@ -2,7 +2,9 @@ use axum::{extract::State, response::IntoResponse, Json};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::{ db::{CacheDataSource, CachedFeedInput, FeedDataSource, RawFeedInput}, error::ServiceError, AppState };
+use crate::{ data::{CacheDataSource, CachedFeed, FeedDataSource, RawFeedInput}, error::ServiceError, AppState };
+
+use super::xml::fetch_feed;
 
 #[derive(Deserialize, Serialize, Debug)]
 struct Entry {
@@ -24,17 +26,17 @@ pub async fn get_feeds(
 ) -> Result<impl IntoResponse, ServiceError> {
     let feed_data_source = FeedDataSource::new(state.pool.clone());
     let raw_feeds = feed_data_source.get_raw_feeds().await?;
-    let mut feeds: Vec<Feed> = Vec::new();
+    let mut feeds: Vec<CachedFeed> = Vec::new();
 
     for raw_feed in raw_feeds {
         if let Some(cached_feed) = CacheDataSource::new(state.pool.clone()).get_cached_feed(&raw_feed.name).await? {
-            // feeds.push(cached_feed.json_string);
+            feeds.push(cached_feed);
         } else {
-            // TODO fetch live feed data
+            let feed = fetch_feed(&raw_feed.name, &raw_feed.url, &raw_feed.category).await?;
             CacheDataSource::new(state.pool.clone())
-                .cache_feed(CachedFeedInput { name: raw_feed.name, json_string: "json".to_string() })
+                .cache_feed(feed.clone())
                 .await?;
-            feeds.push(Feed { name: "live".to_string(), category: "live".to_string(), entries: vec!(Entry { title: "live".to_string(), url: "live".to_string(), created_date: "live".to_string() }) });
+            feeds.push(feed)
         };
     }
 
