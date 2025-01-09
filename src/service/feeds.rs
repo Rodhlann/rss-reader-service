@@ -36,6 +36,7 @@ pub async fn get_feeds(
             CacheDataSource::new(state.pool.clone())
                 .cache_feed(feed.clone())
                 .await?;
+
             feeds.push(feed)
         };
     }
