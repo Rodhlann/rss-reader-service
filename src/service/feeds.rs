@@ -2,9 +2,7 @@ use axum::{extract::State, response::IntoResponse, Json};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::{ data::{CacheDataSource, CachedFeed, FeedDataSource, RawFeedInput}, error::ServiceError, AppState };
-
-use super::xml::fetch_feed;
+use crate::{ data::{CacheDataSource, CachedFeed, FeedDataSource, RawFeedInput, XmlDataSource}, error::ServiceError, AppState };
 
 #[derive(Deserialize, Serialize, Debug)]
 struct Entry {
@@ -32,7 +30,9 @@ pub async fn get_feeds(
         if let Some(cached_feed) = CacheDataSource::new(state.pool.clone()).get_cached_feed(&raw_feed.name).await? {
             feeds.push(cached_feed);
         } else {
-            let feed = fetch_feed(&raw_feed.name, &raw_feed.url, &raw_feed.category).await?;
+            let xml_string = XmlDataSource::get(&raw_feed.url).await?;
+            let feed = XmlDataSource::parse_xml_string(&xml_string, &raw_feed.name, &raw_feed.category)?;
+
             CacheDataSource::new(state.pool.clone())
                 .cache_feed(feed.clone())
                 .await?;
