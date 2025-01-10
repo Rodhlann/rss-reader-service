@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS raw_feeds (
 CREATE TABLE IF NOT EXISTS cached_feeds (
   id serial PRIMARY KEY,
   name varchar NOT NULL UNIQUE,
-  category_id int NOT NULL REFERENCES categories(id) ON DELETE RESTRICT
+  category_id int NOT NULL REFERENCES categories(id) ON DELETE RESTRICT,
   created_date timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

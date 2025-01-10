@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use anyhow::Context;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -23,6 +25,11 @@ pub struct CachedFeed {
     pub name: String,
     pub category: String,
     pub entries: Vec<CachedEntry>
+}
+
+#[derive(Deserialize, Serialize, Debug, FromRow)]
+struct DBCachedFeedName {
+    name: String,
 }
 
 pub struct CacheDataSource {
@@ -105,12 +112,13 @@ impl CacheDataSource {
 
         for entry in input.entries {
             sqlx::query(
-                "INSERT INTO cached_entries (feed_id, title, url)
-                VALUES ($1, $2, $3)"
+                "INSERT INTO cached_entries (feed_id, title, url, created_date)
+                VALUES ($1, $2, $3, $4)"
             )
             .bind(cached_feed_id)
             .bind(&entry.title)
             .bind(&entry.url)
+            .bind(&entry.created_date)
             .execute(&mut *tx)
             .await
             .inspect_err(|e| { eprintln!("Database error: {:?}", e); })
@@ -123,4 +131,32 @@ impl CacheDataSource {
 
         Ok(())
     }
+
+    pub async fn cache_clear(&self) -> Result<(), anyhow::Error> {
+        let stale_cache = sqlx::query_as::<_, DBCachedFeedName>(
+            "SELECT * FROM cached_feeds
+            WHERE created_date < NOW() - INTERVAL '10 minutes';"
+        )
+        .fetch_all(&self.pool)
+        .await
+        .inspect_err(|e| { eprintln!("Database error: {:?}", e); })
+        .context("Failed to fetch stale cached feeds")?;
+
+        let stale_names: Vec<String> = stale_cache.iter().map(|c| c.name.clone()).collect();
+        if !stale_names.is_empty() {
+            println!("Clearing stale cache items: [{}]", stale_names.join(", "));
+
+            sqlx::query_as::<_, DBCachedFeed>(
+                "DELETE FROM cached_feeds
+                WHERE created_date < NOW() - INTERVAL '10 minutes';"
+            )
+            .fetch_all(&self.pool)
+            .await
+            .inspect_err(|e| { eprintln!("Database error: {:?}", e); })
+            .context("Failed to clear stale cached feeds")?;
+        }
+
+        Ok(())
+    }
 }
+
