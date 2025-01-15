@@ -19,11 +19,12 @@ pub async fn rss_reader_service (
         .await
         .expect("Migration failed...");
 
-    let state = AppState { pool: pool.clone(), secrets };
+    let state = AppState { pool: pool.clone(), secrets: secrets.clone() };
 
     let scheduler_pool = pool.clone();
+    let scheduler_secrets = secrets.clone();
     tokio::spawn(async move {
-        let _ = schedule_cache_clear(scheduler_pool)
+        let _ = schedule_cache_clear(scheduler_pool, &scheduler_secrets)
             .await
             .inspect_err(|e| { eprintln!("Failed to schedule cache clear: {}", e); })
             .context("Failed to schedule cache clear");

@@ -5,7 +5,11 @@ meta {
 }
 
 get {
-  url: {{service-url}}/feeds
+  url: {{service-url}}/feeds?duration=MONTH
   body: none
   auth: none
+}
+
+params:query {
+  duration: MONTH
 }

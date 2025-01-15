@@ -19,8 +19,9 @@ CREATE TABLE IF NOT EXISTS cached_feeds (
 );
 
 CREATE TABLE IF NOT EXISTS cached_entries (
+  id serial PRIMARY KEY,
   feed_id int NOT NULL REFERENCES cached_feeds(id) ON DELETE CASCADE,
-  title text NOT NULL UNIQUE,
+  title text NOT NULL,
   url text NOT NULL UNIQUE,
   created_date timestamptz NOT NULL
 );

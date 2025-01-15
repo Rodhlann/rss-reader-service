@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::fmt::{self, Display, Formatter};
 
 use anyhow::Context;
 use chrono::{DateTime, Utc};
@@ -36,12 +36,31 @@ pub struct CacheDataSource {
     pool: PgPool,
 }
 
+#[derive(Deserialize, Debug, Clone, Copy)]
+pub enum Duration {
+  DAY,
+  WEEK,
+  MONTH,
+  YEAR
+}
+
+impl Display for Duration {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            Duration::DAY => write!(f, "DAY"),
+            Duration::WEEK => write!(f, "WEEK"),
+            Duration::MONTH => write!(f, "MONTH"),
+            Duration::YEAR => write!(f, "YEAR"),
+        }
+    }
+}
+
 impl CacheDataSource {
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
-    pub async fn get_cached_feed(&self, feed_name: &str) -> Result<Option<CachedFeed>, anyhow::Error> {
+    pub async fn get_cached_feed(&self, feed_name: &str, duration: Duration, max_entries: usize) -> Result<Option<CachedFeed>, anyhow::Error> {
         let cached_feed = sqlx::query_as::<_, DBCachedFeed>(
             r#"SELECT
                 cached.id,
@@ -59,29 +78,39 @@ impl CacheDataSource {
         .context(format!("Failed to get cached feed: {}", feed_name))?;
 
         if let Some(feed) = cached_feed {
-            let entries = sqlx::query_as::<_, CachedEntry>(
+            let cached_entries = sqlx::query_as::<_, CachedEntry>(
                 r#"SELECT
                     title,
                     url,
                     created_date
                 FROM cached_entries
                 WHERE feed_id = $1
-                ORDER BY created_date DESC"#
+                AND CASE
+                    WHEN $2 = 'DAY' then created_date >= CURRENT_DATE
+                    WHEN $2 = 'WEEK' then created_date >= CURRENT_DATE - INTERVAL '7 days'
+                    WHEN $2 = 'MONTH' then created_date >= CURRENT_DATE - INTERVAL '1 month'
+                    WHEN $2 = 'YEAR' then created_date >= CURRENT_DATE - INTERVAL '1 year'
+                    ELSE TRUE
+                END
+                ORDER BY created_date DESC
+                LIMIT $3;"#
             )
             .bind(feed.id)
+            .bind(duration.to_string())
+            .bind(max_entries as i32)
             .fetch_all(&self.pool)
             .await
             .inspect_err(|e| { eprintln!("Database error: {:?}", e); })
             .context(format!("Failed to get cached entries for feed: {}", feed.name))?;
 
-            Ok(Some(CachedFeed {
+            return Ok(Some(CachedFeed {
                 name: feed.name,
                 category: feed.category,
-                entries
+                entries: cached_entries
             }))
-        } else {
-            return Ok(None);
         }
+
+        return Ok(None);
     }
 
     pub async fn cache_feed(&self, input: CachedFeed) -> Result<(), anyhow::Error> {
@@ -132,11 +161,12 @@ impl CacheDataSource {
         Ok(())
     }
 
-    pub async fn cache_clear(&self) -> Result<(), anyhow::Error> {
+    pub async fn cache_clear(&self, cache_duration: i32) -> Result<(), anyhow::Error> {
         let stale_cache = sqlx::query_as::<_, DBCachedFeedName>(
             "SELECT * FROM cached_feeds
-            WHERE created_date < NOW() - INTERVAL '10 minutes';"
+            WHERE created_date < NOW() - INTERVAL '$1 minutes';"
         )
+        .bind(cache_duration)
         .fetch_all(&self.pool)
         .await
         .inspect_err(|e| { eprintln!("Database error: {:?}", e); })
@@ -148,8 +178,9 @@ impl CacheDataSource {
 
             sqlx::query_as::<_, DBCachedFeed>(
                 "DELETE FROM cached_feeds
-                WHERE created_date < NOW() - INTERVAL '10 minutes';"
+                WHERE created_date < NOW() - INTERVAL '$1 minutes';"
             )
+            .bind(cache_duration)
             .fetch_all(&self.pool)
             .await
             .inspect_err(|e| { eprintln!("Database error: {:?}", e); })
