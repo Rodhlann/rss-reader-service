@@ -1,8 +1,8 @@
-use axum::{extract::{Query, State}, response::IntoResponse, Json};
+use axum::{extract::{Path, Query, State}, response::IntoResponse, Json};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::{ data::{CacheDataSource, CachedFeed, Duration, FeedDataSource, RawFeedInput, XmlDataSource}, error::ServiceError, AppState };
+use crate::{ data::{CacheDataSource, CachedFeed, Duration, FeedDataSource, RawFeedIdInput, RawFeedInput, XmlDataSource}, error::ServiceError, AppState };
 
 #[derive(Deserialize, Serialize, Debug)]
 struct Entry {
@@ -69,8 +69,18 @@ pub async fn create_raw_feed(
     State(state): State<AppState>,
     Json(body): Json<RawFeedInput>
 ) -> Result<impl IntoResponse, ServiceError> {
-   let raw_feed = FeedDataSource::new(state.pool.clone())
+    let raw_feed = FeedDataSource::new(state.pool.clone())
         .create_raw_feed(body)
         .await?;
     Ok(Json(raw_feed))
+}
+
+pub async fn delete_raw_feed(
+    State(state): State<AppState>,
+    Path(id): Path<i32>
+) -> Result<impl IntoResponse, ServiceError> {
+    FeedDataSource::new(state.pool.clone())
+        .delete_raw_feed(id)
+        .await?;
+    Ok(())
 }

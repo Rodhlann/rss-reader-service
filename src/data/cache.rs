@@ -88,8 +88,8 @@ impl CacheDataSource {
                 AND CASE
                     WHEN $2 = 'DAY' then created_date >= CURRENT_DATE
                     WHEN $2 = 'WEEK' then created_date >= CURRENT_DATE - INTERVAL '7 days'
-                    WHEN $2 = 'MONTH' then created_date >= CURRENT_DATE - INTERVAL '1 month'
-                    WHEN $2 = 'YEAR' then created_date >= CURRENT_DATE - INTERVAL '1 year'
+                    WHEN $2 = 'MONTH' then created_date >= CURRENT_DATE - INTERVAL '30 days'
+                    WHEN $2 = 'YEAR' then created_date >= CURRENT_DATE - INTERVAL '365 days'
                     ELSE TRUE
                 END
                 ORDER BY created_date DESC

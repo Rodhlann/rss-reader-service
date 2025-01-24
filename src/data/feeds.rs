@@ -9,6 +9,16 @@ pub struct RawFeedInput {
     category: String,
 }
 
+#[derive(Deserialize, Serialize, Debug)]
+pub struct RawFeedIdInput {
+    id: i32
+}
+
+#[derive(Deserialize, Serialize, Debug, FromRow)]
+pub struct RawFeedName {
+    pub name: String
+}
+
 #[derive(Deserialize, Serialize, Debug, FromRow)]
 pub struct RawFeed {
    pub id: i32,
@@ -93,5 +103,24 @@ impl FeedDataSource {
         .context(format!("Error while getting feed: {}", input.name))?;
 
         Ok(res)
+    }
+
+    pub async fn delete_raw_feed(&self, id: i32) -> Result<(), anyhow::Error> {
+        let res = sqlx::query_as::<_, RawFeedName>(
+            "WITH deleted_row as (
+                DELETE FROM raw_feeds WHERE id = $1
+                RETURNING name
+            )
+            SELECT name FROM deleted_row;"
+        )
+        .bind(id)
+        .fetch_one(&self.pool)
+        .await
+        .inspect_err(|e| { eprintln!("Database error: {:?}", e); })
+        .context(format!("Error while deleting raw feed: {}", id))?;
+
+        println!("Successfully deleted feed: {}", res.name);
+
+        Ok(())
     }
 }
