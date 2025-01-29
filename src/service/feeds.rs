@@ -42,13 +42,22 @@ pub async fn get_feeds(
             feeds.push(cached_feed);
         } else {
             let xml_string = XmlDataSource::get(&raw_feed.url).await?;
-            let feed = XmlDataSource::parse_xml_string(&xml_string, &raw_feed.name, &raw_feed.category)?;
+            let feed = match XmlDataSource::parse_xml_string(&xml_string, &raw_feed.name, &raw_feed.category) {
+                Ok(feed) => feed,
+                Err(_) => {
+                    eprintln!("Failed to parse xml for feed: {}", raw_feed.name);
+                    continue;
+                }
+            };
 
             let datasource = CacheDataSource::new(state.pool.clone());
-            datasource.cache_feed(feed.clone()).await?;
-            let filtered_feed = datasource.get_cached_feed(&raw_feed.name, duration, max_entries).await?;
-
-            feeds.push(filtered_feed.expect(format!("Cached feed '{}' not found", &raw_feed.name).as_str()));
+            match datasource.cache_feed(feed.clone()).await {
+                Ok(_) => {
+                    let filtered_feed = datasource.get_cached_feed(&raw_feed.name, duration, max_entries).await?;
+                    feeds.push(filtered_feed.expect(format!("Cached feed '{}' not found", &raw_feed.name).as_str()));
+                }
+                Err(e) => eprintln!("Failed to get feed: {:?}", e)
+            };
         };
     }
 
@@ -73,6 +82,16 @@ pub async fn create_raw_feed(
         .create_raw_feed(body)
         .await?;
     Ok(Json(raw_feed))
+}
+
+pub async fn batch_create_raw_feeds(
+    State(state): State<AppState>,
+    Json(body): Json<Vec<RawFeedInput>>
+) -> Result<impl IntoResponse, ServiceError> {
+    let raw_feeds = FeedDataSource::new(state.pool.clone())
+        .batch_create_raw_feeds(body)
+        .await?;
+    Ok(Json(raw_feeds))
 }
 
 pub async fn delete_raw_feed(

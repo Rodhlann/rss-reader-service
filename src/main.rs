@@ -1,10 +1,10 @@
 use anyhow::Context;
-use axum::{routing::{delete, get}, Router};
+use axum::{routing::{delete, get, post}, Router};
 use shuttle_runtime::SecretStore;
 use sqlx::PgPool;
 
 mod service;
-use service::{ create_raw_feed, delete_raw_feed, get_feeds, get_raw_feeds, schedule_cache_clear };
+use service::{ batch_create_raw_feeds, create_raw_feed, delete_raw_feed, get_feeds, get_raw_feeds, schedule_cache_clear };
 
 mod data;
 mod error;
@@ -40,9 +40,8 @@ pub async fn rss_reader_service (
             get(get_raw_feeds)
             .post(create_raw_feed)
         )
-    //     .route("/admin/batch",
-    //         post(batch_create_feeds)
-    //     )
+        .route("/admin/batch",
+            post(batch_create_raw_feeds))
         .route("/admin/:id",
             delete(delete_raw_feed)
         );

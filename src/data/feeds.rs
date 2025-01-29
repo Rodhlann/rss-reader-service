@@ -105,6 +105,17 @@ impl FeedDataSource {
         Ok(res)
     }
 
+    pub async fn batch_create_raw_feeds(&self, body: Vec<RawFeedInput>) -> Result<Vec<RawFeed>, anyhow::Error> {
+        let mut raw_feeds: Vec<RawFeed> = Vec::new();
+        for feed in body {
+            match self.create_raw_feed(feed).await {
+                Ok(feed) => raw_feeds.push(feed),
+                _ => {}
+            }
+        }
+        Ok(raw_feeds)
+    }
+
     pub async fn delete_raw_feed(&self, id: i32) -> Result<(), anyhow::Error> {
         let res = sqlx::query_as::<_, RawFeedName>(
             "WITH deleted_row as (
