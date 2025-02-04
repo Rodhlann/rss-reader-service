@@ -1,0 +1,16 @@
+#+TITLE: TODOs
+
+* TODO List
+** DONE Test feed caching and fetching~
+** DONE Implement cache invalidation
+** DONE Use env vars for cache timer duration
+** DONE Add filtering
+** DONE Delete feeds
+** TODO Update feeds
+** TODO Bulk add feeds
+*** Update so DB ignores duplicates instead of throwing an error (currently generating a lot of PKs unecessarily)
+** TODO Authenticated routes
+** TODO Multi-thread feed processing ?
+** TODO Set up GitHub Actions deployment
+** TODO Kill existing RSS Reader Service?
+  - Maybe keep it up so I can see if my changes made any difference on query speed ?
