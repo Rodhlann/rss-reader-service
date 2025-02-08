@@ -5,7 +5,15 @@ meta {
 }
 
 post {
-  url: 
-  body: none
+  url: {{service-url}}/admin/1
+  body: json
   auth: none
+}
+
+body:json {
+    {
+      "name": "Node.js Blog",
+      "url": "https://nodejs.org/en/feed/blog.xml",
+      "category": "Code"
+    }
 }
