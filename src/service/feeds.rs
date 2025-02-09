@@ -6,10 +6,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    data::{
-        CacheDataSource, CachedFeed, Duration, FeedDataSource, RawFeedIdInput, RawFeedInput,
-        XmlDataSource,
-    },
+    data::{CacheDataSource, CachedFeed, Duration, FeedDataSource, RawFeedInput, XmlDataSource},
     error::ServiceError,
     AppState,
 };

@@ -1,5 +1,6 @@
 use anyhow::Context;
 use axum::{
+    middleware,
     routing::{get, post},
     Router,
 };
@@ -11,6 +12,9 @@ use service::{
     batch_create_raw_feeds, create_raw_feed, delete_raw_feed, get_categories, get_feeds,
     get_raw_feeds, schedule_cache_clear, update_raw_feed,
 };
+
+mod auth;
+use auth::auth_middleware;
 
 mod data;
 mod error;
@@ -51,8 +55,11 @@ pub async fn rss_reader_service(
     let protected_routes = Router::new()
         .route("/admin", get(get_raw_feeds).post(create_raw_feed))
         .route("/admin/batch", post(batch_create_raw_feeds))
-        .route("/admin/:id", post(update_raw_feed).delete(delete_raw_feed));
-    //     .layer(middleware::from_fn_with_state(state.clone(), auth_middleware));
+        .route("/admin/:id", post(update_raw_feed).delete(delete_raw_feed))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            auth_middleware,
+        ));
 
     let routes = Router::new()
         .merge(unprotected_routes)

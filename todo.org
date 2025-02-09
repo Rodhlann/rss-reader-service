@@ -9,7 +9,7 @@
 ** DONE Update feeds
 ** DONE? Bulk add feeds
 *** Update so DB ignores duplicates instead of throwing an error (currently generating a lot of PKs unecessarily)
-** TODO Authenticated routes
+** DONE Authenticated routes
 ** TODO Multi-thread feed processing ?
 ** TODO Set up GitHub Actions deployment
 ** TODO Kill existing RSS Reader Service?

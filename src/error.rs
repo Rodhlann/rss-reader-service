@@ -3,6 +3,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 
+#[derive(Debug)]
 pub struct ServiceError(anyhow::Error);
 
 impl IntoResponse for ServiceError {
