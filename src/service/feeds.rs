@@ -3,10 +3,13 @@ use axum::{
     response::IntoResponse,
     Json,
 };
+use futures::future;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    data::{CacheDataSource, CachedFeed, Duration, FeedDataSource, RawFeedInput, XmlDataSource},
+    data::{
+        CacheDataSource, CachedFeed, Duration, FeedDataSource, RawFeed, RawFeedInput, XmlDataSource,
+    },
     error::ServiceError,
     AppState,
 };
@@ -38,48 +41,66 @@ pub async fn get_feeds(
 ) -> Result<impl IntoResponse, ServiceError> {
     let feed_data_source = FeedDataSource::new(state.pool.clone());
     let raw_feeds = feed_data_source.get_raw_feeds().await?;
-    let mut feeds: Vec<CachedFeed> = Vec::new();
 
     let duration = params.duration.unwrap_or(Duration::WEEK);
     let max_entries = params.max_entries.unwrap_or(5);
 
+    let mut cached_feeds: Vec<CachedFeed> = Vec::new();
+    let mut new_feeds: Vec<RawFeed> = Vec::new();
     for raw_feed in raw_feeds {
         if let Some(cached_feed) = CacheDataSource::new(state.pool.clone())
             .get_cached_feed(&raw_feed.name, duration, max_entries)
             .await?
         {
-            feeds.push(cached_feed);
+            cached_feeds.push(cached_feed);
         } else {
-            let xml_string = XmlDataSource::get(&raw_feed.url).await?;
-            let feed = match XmlDataSource::parse_xml_string(
-                &xml_string,
-                &raw_feed.name,
-                &raw_feed.category,
-            ) {
-                Ok(feed) => feed,
-                Err(_) => {
-                    eprintln!("Failed to parse xml for feed: {}", raw_feed.name);
-                    continue;
-                }
-            };
-
-            let datasource = CacheDataSource::new(state.pool.clone());
-            match datasource.cache_feed(feed.clone()).await {
-                Ok(_) => {
-                    let filtered_feed = datasource
-                        .get_cached_feed(&raw_feed.name, duration, max_entries)
-                        .await?;
-                    feeds
-                        .push(filtered_feed.expect(
-                            format!("Cached feed '{}' not found", &raw_feed.name).as_str(),
-                        ));
-                }
-                Err(e) => eprintln!("Failed to get feed: {:?}", e),
-            };
-        };
+            new_feeds.push(raw_feed)
+        }
     }
 
-    Ok(Json(feeds))
+    let futures = new_feeds
+        .into_iter()
+        .map(|raw_feed| async move {
+            let result = XmlDataSource::get(&raw_feed.url).await;
+            (raw_feed, result)
+        })
+        .collect::<Vec<_>>();
+
+    let results: Vec<(RawFeed, Result<String, anyhow::Error>)> = future::join_all(futures).await;
+
+    for (raw_feed, result) in results {
+        let xml_string = match result {
+            Ok(xml_string) => xml_string,
+            Err(e) => return Err(ServiceError::from(anyhow::Error::msg(e))),
+        };
+
+        let feed = match XmlDataSource::parse_xml_string(
+            &xml_string,
+            &raw_feed.name,
+            &raw_feed.category,
+        ) {
+            Ok(feed) => feed,
+            Err(_) => {
+                eprintln!("Failed to parse xml for feed: {}", raw_feed.name);
+                continue;
+            }
+        };
+
+        let datasource = CacheDataSource::new(state.pool.clone());
+        match datasource.cache_feed(feed.clone()).await {
+            Ok(_) => {
+                let filtered_feed = datasource
+                    .get_cached_feed(&raw_feed.name, duration, max_entries)
+                    .await?;
+                cached_feeds.push(
+                    filtered_feed
+                        .expect(format!("Cached feed '{}' not found", &raw_feed.name).as_str()),
+                );
+            }
+            Err(e) => eprintln!("Failed to get feed: {:?}", e),
+        };
+    }
+    Ok(Json(cached_feeds))
 }
 
 pub async fn get_categories(

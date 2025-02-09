@@ -1,7 +1,7 @@
 #+TITLE: TODOs
 
 * TODO List
-** DONE Test feed caching and fetching~
+** DONE Test feed caching and fetching
 ** DONE Implement cache invalidation
 ** DONE Use env vars for cache timer duration
 ** DONE Add filtering
@@ -10,7 +10,7 @@
 ** DONE? Bulk add feeds
 *** Update so DB ignores duplicates instead of throwing an error (currently generating a lot of PKs unecessarily)
 ** DONE Authenticated routes
-** TODO Multi-thread feed processing ?
+** DONE Multi-thread feed processing
 ** TODO Set up GitHub Actions deployment
 ** TODO Kill existing RSS Reader Service?
   - Maybe keep it up so I can see if my changes made any difference on query speed ?
@@ -19,3 +19,4 @@
 ** OPEN some network issues on long request to fetch RSS feed data that kill the request
 ** OPEN fetching Rust in Production RSS feed data
 ** OPEN fetching Infrequently Blog RSS feed data
+** OPEN clean up Service level Anyhow error handling (e.g. Err(ServiceError::from(anyhow::Error::msg("<error>"))))
