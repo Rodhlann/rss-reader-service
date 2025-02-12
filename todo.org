@@ -17,7 +17,7 @@
   - Maybe keep it up so I can see if my changes made any difference on query speed ?
 
 * ISSUES
-** OPEN Issue getting "DAILY" filtered  feeds, returns empty array
+** CLOSED Issue getting "DAILY" filtered  feeds, returns empty array
 ** OPEN some network issues on long request to fetch RSS feed data that kill the request
 ** OPEN fetching Rust in Production RSS feed data
 ** OPEN fetching Infrequently Blog RSS feed data
