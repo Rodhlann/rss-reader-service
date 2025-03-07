@@ -10,7 +10,7 @@ use sqlx::PgPool;
 mod service;
 use service::{
     batch_create_raw_feeds, create_raw_feed, delete_raw_feed, get_categories, get_feeds,
-    get_raw_feeds, schedule_cache_clear, update_raw_feed,
+    get_raw_feeds, schedule_cache_refresh, update_raw_feed,
 };
 
 mod auth;
@@ -40,7 +40,7 @@ pub async fn rss_reader_service(
     let scheduler_pool = pool.clone();
     let scheduler_secrets = secrets.clone();
     tokio::spawn(async move {
-        let _ = schedule_cache_clear(scheduler_pool, &scheduler_secrets)
+        let _ = schedule_cache_refresh(scheduler_pool, &scheduler_secrets)
             .await
             .inspect_err(|e| {
                 eprintln!("Failed to schedule cache clear: {}", e);

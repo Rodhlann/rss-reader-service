@@ -30,8 +30,8 @@ struct Feed {
 
 #[derive(Deserialize, Debug)]
 pub struct FeedsParam {
-    duration: Option<Duration>,
-    max_entries: Option<usize>,
+    pub duration: Option<Duration>,
+    pub max_entries: Option<usize>,
 }
 
 #[axum::debug_handler]
